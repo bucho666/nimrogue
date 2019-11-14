@@ -1,7 +1,8 @@
 import
   class,
   nimbox,
-  tables
+  tables,
+  random
 
 class Coord of tuple[x, y: int]:
   proc `+`(other: Coord): Coord =
@@ -115,7 +116,7 @@ class Messages:
       console.print((x, y + index), message)
     console
 
-class Area of Rect:
+class Room of Rect:
   iterator frame(): Coord =
     for x in self.x .. self.right:
       yield (x, self.y)
@@ -124,25 +125,44 @@ class Area of Rect:
       yield (self.x, y)
       yield (self.right, y)
 
+  iterator inside(): Coord =
+    for y in self.y + 1 .. self.bottom - 1:
+      for x in self.x + 1 .. self.right - 1:
+        yield (x, y)
+
   proc render(console: Console): Console {.discardable.} =
     for c in self.frame:
-      console.print(c, "*")
+      console.print(c, "#")
+    for c in self.inside:
+      console.print(c, ".")
 
+const MIN_ROOM_SIZE: Size = (4, 4)
 class Generator:
   var
     size: Size
-    areas: seq[Area]
+    rooms: seq[seq[Room]]
 
   proc render(console: Console): Console =
-    for area in self.areas:
-      console.render(area)
+    for roomLine in self.rooms:
+      for room in roomLine:
+        console.render(room)
     console
+
+  proc generateRoom(area: Rect): Room =
+    let
+      w = rand(MIN_ROOM_SIZE.w .. area.w - 2)
+      h = rand(MIN_ROOM_SIZE.h .. area.h - 2)
+      x = rand(area.x .. area.right - w - 2)
+      y = rand(area.y .. area.bottom - h - 2)
+    Room(coord:(x, y), size:(w, h))
 
   proc generate(splitSize: Size) =
     let areaSize: Size = (int(self.size.w / splitSize.w), int(self.size.h / splitSize.h))
     for y in 0..splitSize.h - 1:
+      self.rooms.add(newSeq[Room]())
       for x in 0..splitSize.w - 1:
-        self.areas.add(Area(coord:(areaSize.w * x, areaSize.h * y), size:areaSize))
+        let area = Rect(coord: (areaSize.w * x, areaSize.h * y), size: areaSize)
+        self.rooms[y].add(self.generateRoom(area))
 
 class Rogue:
   var
@@ -153,11 +173,12 @@ class Rogue:
     generator: Generator
 
   proc newRogue(): Rogue =
+    randomize()
     Rogue(console: newConsole(),
          isRunning: true,
          hero: Hero(glyph: '@', color: clrDefault, coord: (1, 1)),
          messages: newMessages((0, 20), 4),
-         generator: Generator(size:(81, 25))
+         generator: Generator(size:(80, 23))
          )
 
   proc render() =
