@@ -38,8 +38,14 @@ proc x(self: Rect): int = self.coord.x
 proc y(self: Rect): int = self.coord.y
 proc w(self: Rect): int = self.size.w
 proc h(self: Rect): int = self.size.h
-proc right(self: Rect): int = self.x + self.w
-proc bottom(self: Rect): int  = self.y + self.h
+proc right(self: Rect): int = self.x + self.w - 1
+proc bottom(self: Rect): int  = self.y + self.h - 1
+
+proc toEven(n: int): int =
+  if (n mod 2) == 0: n else: n - 1
+
+proc toOdd(n: int): int =
+  if (n mod 2) == 1: n else: n - 1
 
 proc isDirKey(key: char): bool =
   key in dirKeyTable
@@ -137,7 +143,6 @@ proc render(self: Rect, console: Console): Console {.discardable.} =
     console.print(c, ".")
 
 # Generator
-const MIN_ROOM_SIZE: Size = (4, 4)
 type Generator = ref object
   size: Size
   rooms: seq[seq[Rect]]
@@ -149,11 +154,12 @@ proc render(self: Generator, console: Console): Console =
   console
 
 proc generateRoom(self: Generator, area: Rect): Rect =
+  const MIN_ROOM_SIZE: Size = (5, 5)
   let
-    w = rand(MIN_ROOM_SIZE.w .. area.w - 2)
-    h = rand(MIN_ROOM_SIZE.h .. area.h - 2)
-    x = rand(area.x .. area.right - w - 2)
-    y = rand(area.y .. area.bottom - h - 2)
+    w = rand(MIN_ROOM_SIZE.w .. area.w).toOdd
+    h = rand(MIN_ROOM_SIZE.h .. area.h).toOdd
+    x = rand(area.x .. area.right - w).toEven
+    y = rand(area.y .. area.bottom - h).toEven
   (coord:(x, y), size:(w, h))
 
 proc generate(self: Generator, splitSize: Size) =
@@ -177,8 +183,8 @@ proc newRogue(): Rogue =
   Rogue(console: newConsole(),
        isRunning: true,
        hero: Hero(glyph: '@', color: clrDefault, coord: (1, 1)),
-       messages: newMessages((0, 20), 4),
-       generator: Generator(size:(80, 23))
+       messages: newMessages((0, 22), 4),
+       generator: Generator(size:(80, 24))
        )
 
 proc render(self: Rogue) =
