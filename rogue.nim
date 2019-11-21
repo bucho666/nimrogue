@@ -24,10 +24,35 @@ const
     'n': dirSE,
   }.toTable
 
-# Coord
-type Coord = tuple[x, y: int]
+# Coord/Direction
+type
+  Coord = tuple[x, y: int]
+  Direction = Coord
+
 proc `+`(self: Coord, other: Coord): Coord =
   (self.x + other.x, self.y + other.y)
+
+proc `+=`(self: var Coord, other: Coord) =
+  self = self + other
+
+proc `-`(self: Coord, other: Coord): Coord =
+  (self.x - other.x, self.y - other.y)
+
+proc abs(self: Coord): Coord =
+  (self.x.abs, self.y.abs)
+
+proc sum(self: Coord): int =
+  self.x + self.y
+
+proc directionTo(self: Coord, other: Coord): Direction =
+  let
+    v = other - self
+    x = if v.x > 0: 1 elif v.x < 0: -1 else: 0
+    y = if v.y > 0: 1 elif v.y < 0: -1 else: 0
+  (x, y)
+
+proc reverse(self: Direction): Direction =
+  (self.x * -1, self.y * -1)
 
 # Size
 type Size = tuple[w, h: int]
@@ -125,7 +150,6 @@ proc render(self: Messages, console: Console): Console =
     console.print((x, y + index), message)
   console
 
-
 # Room
 type Room = Rect
 
@@ -142,15 +166,19 @@ iterator inside(self: Room): Coord =
     for x in self.x + 1 .. self.right - 1:
       yield (x, y)
 
+proc frameCoordAtRandom(self: Room, dir: Direction): Coord =
+  if dir == dirN: return (rand(self.x + 1 ..< self.right), self.y)
+  if dir == dirS: return (rand(self.x + 1 ..< self.right), self.bottom)
+  if dir == dirW: return (self.x, rand(self.y + 1 ..< self.bottom))
+  if dir == dirE: return (self.right, rand(self.y + 1 ..< self.bottom))
+  raise newException(Exception, "Invalid Direction")
+
 # Map
 const MAP_SIZE: Size = (80, 24)
 type MapCell = string
 type Map = ref object
   cells: Matrix[MapCell, MAP_SIZE.w, MAP_SIZE.h]
   coord: Coord
-
-proc `[]`(self: Map, index: int): array[MAP_SIZE.w, MapCell] =
-  self.cells[index]
 
 proc put(self: var Map, coord: Coord, cell: MapCell) =
   self.cells[coord.y][coord.x] = cell
@@ -163,13 +191,31 @@ proc putRoom(self: var Map, room: Room) =
 
 proc render(self: Map, console: Console): Console =
   for y in 0 ..< self.cells.len:
-    for x in 0 ..< self[y].len:
+    for x in 0 ..< self.cells[y].len:
       console.print((x, y) + self.coord, self.cells[y][x])
+
+# RoomTable
+type RoomTable = seq[seq[Rect]]
+
+proc roomAt(self: RoomTable, coord: Coord): Room =
+  self[coord.y][coord.x]
+
+iterator rooms(self: RoomTable): (Coord, Room) =
+  for y, roomTable in self:
+    for x, room in roomTable:
+      yield ((x, y), room)
+
+proc connectableDirections(self: RoomTable, coord: Coord): seq[Direction] =
+  if coord.x != 0: result.add(dirW)
+  if coord.x != self[0].len - 1: result.add(dirE)
+  if coord.y != 0: result.add(dirN)
+  if coord.y != self.len - 1: result.add(dirS)
 
 # Generator
 type Generator = ref object
   size: Size
-  rooms: seq[seq[Rect]]
+  roomTable: RoomTable
+  map: Map
 
 proc generateRoom(self: Generator, area: Rect): Rect =
   const MIN_ROOM_SIZE: Size = (5, 5)
@@ -180,17 +226,56 @@ proc generateRoom(self: Generator, area: Rect): Rect =
     y = rand(area.y .. area.bottom - h).toEven
   (coord:(x, y), size:(w, h))
 
-proc generate(self: Generator, splitSize: Size): Map =
-  result = Map()
+proc generateRooms(self: Generator, splitSize: Size) =
   let areaSize: Size = (int(self.size.w / splitSize.w), int(self.size.h / splitSize.h))
   for y in 0 ..< splitSize.h:
-    self.rooms.add(newSeq[Rect]())
+    self.roomTable.add(newSeq[Rect]())
     for x in 0 ..< splitSize.w:
       let area = (coord: (areaSize.w * x, areaSize.h * y), size: areaSize)
-      self.rooms[y].add(self.generateRoom(area))
-  for y in 0 ..< splitSize.h:
-    for x in 0 ..< splitSize.w:
-      result.putRoom(self.rooms[y][x])
+      self.roomTable[y].add(self.generateRoom(area))
+
+proc putRooms(self: Generator) =
+  for coord, room in self.roomTable.rooms:
+    self.map.putRoom(room)
+
+proc buildRooms(self: Generator, splitSize: Size) =
+  self.generateRooms(splitSize)
+  self.putRooms()
+
+proc makePassageTo(fromCoord, toCoord: Coord): seq[Coord] =
+  var current = fromCoord
+  let dir = current.directionTo(toCoord)
+  result = @[current]
+  while current != toCoord:
+    let distance = (toCoord - current).abs
+    current += (if rand(1..distance.sum) <= distance.x: (dir.x, 0) else: (0, dir.y))
+    result.add(current)
+
+proc connectRoom(self: Generator, roomCoord: Coord, dir: Direction) =
+  let
+    fromRoom = self.roomTable.roomAt(roomCoord)
+    fromRoomDoor = fromRoom.frameCoordAtRandom(dir)
+    fromCoord = fromRoomDoor + dir
+    toRoom= self.roomTable.roomAt(roomCoord + dir)
+    rdir = dir.reverse
+    toRoomDoor = toRoom.frameCoordAtRandom(rdir)
+    toCoord = toRoomDoor + rdir
+  for c in fromCoord.makePassageTo(toCoord):
+    self.map.put(c, "*")
+  self.map.put(fromRoomDoor, "/")
+  self.map.put(toRoomDoor, "+")
+
+proc buildPassages(self: Generator) =
+  let
+    coord = (1, 1)
+    dir = self.roomTable.connectableDirections(coord).sample
+  self.connectRoom(coord, dir)
+
+proc generate(self: Generator, splitSize: Size): Map =
+  self.map = Map()
+  self.buildRooms(splitSize)
+  self.buildPassages
+  self.map
 
 # Rogue
 type Rogue = ref object
