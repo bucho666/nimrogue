@@ -151,33 +151,38 @@ proc render(self: Messages, console: Console): Console =
     console.print((x, y + index), message)
   console
 
-# Room
-type Room = ref object
-  area: Rect
+type Room = ref object of RootObj
   exits: HashSet[Direction]
 
-proc x(self: Room): int = self.area.x
-proc y(self: Room): int = self.area.y
-proc right(self: Room): int = self.area.right
-proc bottom(self: Room): int  = self.area.bottom
-proc isConnected(self: Room): bool = self.exits.len != 0
-proc isNotConnected(self: Room): bool = not self.isConnected
-proc isConnectedTo(self: Room, dir: Direction): bool = self.exits.contains(dir)
+method isConnected(self: Room): bool {.base.} = self.exits.len != 0
+method isNotConnected(self: Room): bool {.base.} = not self.isConnected
+method isConnectedTo(self: Room, dir: Direction): bool {.base.} = self.exits.contains(dir)
+method floors(self: Room): seq[Coord] {.base.} = discard
+method walls(self: Room): seq[Coord] {.base.} = discard
+method wallCoordAtRandom(self: Room, dir: Direction): Coord {.base.} = discard
 
-iterator frame(self: Room): Coord =
+# NormalRoom
+type NormalRoom = ref object of Room
+  area: Rect
+
+proc x(self: NormalRoom): int = self.area.x
+proc y(self: NormalRoom): int = self.area.y
+proc right(self: NormalRoom): int = self.area.right
+proc bottom(self: NormalRoom): int  = self.area.bottom
+method walls(self: NormalRoom): seq[Coord] =
   for x in self.x .. self.right:
-    yield (x, self.y)
-    yield (x, self.bottom)
+    result.add((x, self.y))
+    result.add((x, self.bottom))
   for y in self.y + 1 .. self.bottom - 1:
-    yield (self.x, y)
-    yield (self.right, y)
+    result.add((self.x, y))
+    result.add((self.right, y))
 
-iterator inside(self: Room): Coord =
+method floors(self: NormalRoom): seq[Coord] =
   for y in self.y + 1 .. self.bottom - 1:
     for x in self.x + 1 .. self.right - 1:
-      yield (x, y)
+      result.add((x, y))
 
-proc frameCoordAtRandom(self: Room, dir: Direction): Coord =
+method wallCoordAtRandom(self: NormalRoom, dir: Direction): Coord =
   if dir == dirN: return (rand(self.x + 1 ..< self.right), self.y)
   if dir == dirS: return (rand(self.x + 1 ..< self.right), self.bottom)
   if dir == dirW: return (self.x, rand(self.y + 1 ..< self.bottom))
@@ -195,9 +200,9 @@ proc put(self: var Map, coord: Coord, cell: MapCell) =
   self.cells[coord.y][coord.x] = cell
 
 proc putRoom(self: var Map, room: Room) =
-  for c in room.frame:
+  for c in room.walls:
     self.put(c, "#")
-  for c in room.inside:
+  for c in room.floors:
     self.put(c, ".")
 
 proc render(self: Map, console: Console): Console =
@@ -237,7 +242,6 @@ proc allConnected(self: RoomTable): bool =
     if room.isNotConnected: return false
   return true
 
-
 # Generator
 type Generator = ref object
   size: Size
@@ -251,7 +255,7 @@ proc generateRoom(self: Generator, area: Rect): Room =
     h = rand(MIN_ROOM_SIZE.height .. area.height).toOdd
     x = rand(area.x .. area.right - w).toEven
     y = rand(area.y .. area.bottom - h).toEven
-  Room(area: (coord:(x, y), size:(w, h)))
+  NormalRoom(area: (coord:(x, y), size:(w, h)))
 
 proc generateRooms(self: Generator, splitSize: Size) =
   let areaSize: Size = (int(self.size.width / splitSize.width), int(self.size.height / splitSize.height))
@@ -281,11 +285,11 @@ proc makePassageTo(fromCoord, toCoord: Coord): seq[Coord] =
 proc connectRoom(self: Generator, roomCoord: Coord, dir: Direction) =
   let
     fromRoom = self.roomTable.roomAt(roomCoord)
-    fromRoomDoor = fromRoom.frameCoordAtRandom(dir)
+    fromRoomDoor = fromRoom.wallCoordAtRandom(dir)
     fromCoord = fromRoomDoor + dir
     toRoom= self.roomTable.roomAt(roomCoord + dir)
     rdir = dir.reverse
-    toRoomDoor = toRoom.frameCoordAtRandom(rdir)
+    toRoomDoor = toRoom.wallCoordAtRandom(rdir)
     toCoord = toRoomDoor + rdir
   for c in fromCoord.makePassageTo(toCoord):
     self.map.put(c, "*")
