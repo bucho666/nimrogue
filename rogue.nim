@@ -160,7 +160,8 @@ proc x(self: Room): int = self.area.x
 proc y(self: Room): int = self.area.y
 proc right(self: Room): int = self.area.right
 proc bottom(self: Room): int  = self.area.bottom
-proc isNotConnected(self: Room): bool = self.exits.len == 0
+proc isConnected(self: Room): bool = self.exits.len != 0
+proc isNotConnected(self: Room): bool = not self.isConnected
 proc isConnectedTo(self: Room, dir: Direction): bool = self.exits.contains(dir)
 
 iterator frame(self: Room): Coord =
@@ -209,9 +210,14 @@ type RoomTable = seq[seq[Room]]
 
 proc width(self: RoomTable): int = self[0].len - 1
 proc height(self: RoomTable): int = self.len - 1
+proc roomCoordAtRandom(self: RoomTable): Coord = (rand(0 .. self.width), rand(0 .. self.height))
+proc roomAt(self: RoomTable, coord: Coord): Room = self[coord.y][coord.x]
 
-proc roomAt(self: RoomTable, coord: Coord): Room =
-  self[coord.y][coord.x]
+proc connectedRoomCoordAtRandom(self: RoomTable): Coord =
+  while true:
+    let coord = self.roomCoordAtRandom
+    if self.roomAt(coord).isConnected:
+      return coord
 
 iterator rooms(self: RoomTable): (Coord, Room) =
   for y, roomTable in self:
@@ -230,6 +236,7 @@ proc allConnected(self: RoomTable): bool =
   for coord, room in self.rooms:
     if room.isNotConnected: return false
   return true
+
 
 # Generator
 type Generator = ref object
@@ -288,13 +295,20 @@ proc connectRoom(self: Generator, roomCoord: Coord, dir: Direction) =
   toRoom.exits.incl(rdir)
 
 proc buildPassages(self: Generator) =
-  var coord = (rand(0 .. 2), rand(0 .. 2))
+  var coord = self.roomTable.roomCoordAtRandom
   while not self.roomTable.allConnected:
     let dirs = self.roomTable.connectableDirections(coord)
-    if dirs.len == 0: break
+    if dirs.len == 0:
+      coord = self.roomTable.connectedRoomCoordAtRandom
+      continue
     let dir = dirs.sample
     self.connectRoom(coord, dir)
     coord += dir
+  for n in 0 .. rand(0 .. self.roomTable.width):
+    let coord = self.roomTable.connectedRoomCoordAtRandom
+    let dirs = self.roomTable.connectableDirections(coord)
+    if dirs.len == 0: continue
+    self.connectRoom(coord, dirs.sample)
 
 proc generate(self: Generator, splitSize: Size): Map =
   self.map = Map()
