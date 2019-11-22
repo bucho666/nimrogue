@@ -55,16 +55,16 @@ proc reverse(self: Direction): Direction =
   (self.x * -1, self.y * -1)
 
 # Size
-type Size = tuple[w, h: int]
+type Size = tuple[width, height: int]
 
 # Rect
 type Rect = tuple[coord: Coord, size: Size]
 proc x(self: Rect): int = self.coord.x
 proc y(self: Rect): int = self.coord.y
-proc w(self: Rect): int = self.size.w
-proc h(self: Rect): int = self.size.h
-proc right(self: Rect): int = self.x + self.w - 1
-proc bottom(self: Rect): int  = self.y + self.h - 1
+proc width(self: Rect): int = self.size.width
+proc height(self: Rect): int = self.size.height
+proc right(self: Rect): int = self.x + self.width - 1
+proc bottom(self: Rect): int  = self.y + self.height - 1
 
 # Utility
 proc toEven(n: int): int =
@@ -151,7 +151,15 @@ proc render(self: Messages, console: Console): Console =
   console
 
 # Room
-type Room = Rect
+type Room = ref object
+  area: Rect
+
+proc x(self: Room): int = self.area.x
+proc y(self: Room): int = self.area.y
+proc width*(self: Room): int = self.area.width
+proc height*(self: Room): int = self.area.height
+proc right(self: Room): int = self.area.right
+proc bottom(self: Room): int  = self.area.bottom
 
 iterator frame(self: Room): Coord =
   for x in self.x .. self.right:
@@ -177,7 +185,7 @@ proc frameCoordAtRandom(self: Room, dir: Direction): Coord =
 const MAP_SIZE: Size = (80, 24)
 type MapCell = string
 type Map = ref object
-  cells: Matrix[MapCell, MAP_SIZE.w, MAP_SIZE.h]
+  cells: Matrix[MapCell, MAP_SIZE.width, MAP_SIZE.height]
   coord: Coord
 
 proc put(self: var Map, coord: Coord, cell: MapCell) =
@@ -195,7 +203,7 @@ proc render(self: Map, console: Console): Console =
       console.print((x, y) + self.coord, self.cells[y][x])
 
 # RoomTable
-type RoomTable = seq[seq[Rect]]
+type RoomTable = seq[seq[Room]]
 
 proc roomAt(self: RoomTable, coord: Coord): Room =
   self[coord.y][coord.x]
@@ -217,21 +225,21 @@ type Generator = ref object
   roomTable: RoomTable
   map: Map
 
-proc generateRoom(self: Generator, area: Rect): Rect =
+proc generateRoom(self: Generator, area: Rect): Room =
   const MIN_ROOM_SIZE: Size = (5, 5)
   let
-    w = rand(MIN_ROOM_SIZE.w .. area.w).toOdd
-    h = rand(MIN_ROOM_SIZE.h .. area.h).toOdd
+    w = rand(MIN_ROOM_SIZE.width .. area.width).toOdd
+    h = rand(MIN_ROOM_SIZE.height .. area.height).toOdd
     x = rand(area.x .. area.right - w).toEven
     y = rand(area.y .. area.bottom - h).toEven
-  (coord:(x, y), size:(w, h))
+  Room(area: (coord:(x, y), size:(w, h)))
 
 proc generateRooms(self: Generator, splitSize: Size) =
-  let areaSize: Size = (int(self.size.w / splitSize.w), int(self.size.h / splitSize.h))
-  for y in 0 ..< splitSize.h:
-    self.roomTable.add(newSeq[Rect]())
-    for x in 0 ..< splitSize.w:
-      let area = (coord: (areaSize.w * x, areaSize.h * y), size: areaSize)
+  let areaSize: Size = (int(self.size.width / splitSize.width), int(self.size.height / splitSize.height))
+  for y in 0 ..< splitSize.height:
+    self.roomTable.add(newSeq[Room]())
+    for x in 0 ..< splitSize.width:
+      let area = (coord: (areaSize.width * x, areaSize.height * y), size: areaSize)
       self.roomTable[y].add(self.generateRoom(area))
 
 proc putRooms(self: Generator) =
