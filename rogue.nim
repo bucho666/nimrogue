@@ -160,6 +160,7 @@ proc x(self: Room): int = self.area.x
 proc y(self: Room): int = self.area.y
 proc right(self: Room): int = self.area.right
 proc bottom(self: Room): int  = self.area.bottom
+proc isNotConnected(self: Room): bool = self.exits.len == 0
 proc isConnectedTo(self: Room, dir: Direction): bool = self.exits.contains(dir)
 
 iterator frame(self: Room): Coord =
@@ -225,6 +226,11 @@ proc connectableDirections(self: RoomTable, coord: Coord): seq[Direction] =
   for (c, s, d) in [(x, 0, dirW), (x, w, dirE), (y, 0, dirN), (y, h, dirS)]:
     if c != s and not room.isConnectedTo(d): result.add(d)
 
+proc allConnected(self: RoomTable): bool =
+  for coord, room in self.rooms:
+    if room.isNotConnected: return false
+  return true
+
 # Generator
 type Generator = ref object
   size: Size
@@ -282,10 +288,13 @@ proc connectRoom(self: Generator, roomCoord: Coord, dir: Direction) =
   toRoom.exits.incl(rdir)
 
 proc buildPassages(self: Generator) =
-  for coord, room in self.roomTable.rooms:
+  var coord = (rand(0 .. 2), rand(0 .. 2))
+  while not self.roomTable.allConnected:
     let dirs = self.roomTable.connectableDirections(coord)
-    if dirs.len == 0: continue
-    self.connectRoom(coord, dirs.sample)
+    if dirs.len == 0: break
+    let dir = dirs.sample
+    self.connectRoom(coord, dir)
+    coord += dir
 
 proc generate(self: Generator, splitSize: Size): Map =
   self.map = Map()
