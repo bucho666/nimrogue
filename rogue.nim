@@ -2,7 +2,8 @@ import
   nimbox,
   tables,
   random,
-  sets
+  sets,
+  sequtils
 
 # Constant
 const
@@ -152,14 +153,16 @@ proc render(self: Messages, console: Console): Console =
   console
 
 type Room = ref object of RootObj
-  exits: HashSet[Direction]
+  exit: Table[Direction, Coord]
 
-method isConnected(self: Room): bool {.base.} = self.exits.len != 0
+method isConnected(self: Room): bool {.base.} = self.exit.len != 0
 method isNotConnected(self: Room): bool {.base.} = not self.isConnected
-method isConnectedTo(self: Room, dir: Direction): bool {.base.} = self.exits.contains(dir)
+method isConnectedTo(self: Room, dir: Direction): bool {.base.} = dir in self.exit
 method floors(self: Room): seq[Coord] {.base.} = discard
 method walls(self: Room): seq[Coord] {.base.} = discard
 method wallCoordAtRandom(self: Room, dir: Direction): Coord {.base.} = discard
+method setExit(self: Room, dir: Direction, coord: Coord) {.base.} = self.exit[dir] = coord
+method exits(self: Room): seq[(Direction, Coord)] {.base.} = @[]
 
 # NormalRoom
 type NormalRoom = ref object of Room
@@ -189,6 +192,16 @@ method wallCoordAtRandom(self: NormalRoom, dir: Direction): Coord =
   if dir == dirE: return (self.right, rand(self.y + 1 ..< self.bottom))
   raise newException(Exception, "Invalid Direction")
 
+method exits(self: NormalRoom): seq[(Direction, Coord)] = toSeq(self.exit.pairs)
+
+# GoneRoom
+type GoneRoom = ref object of Room
+  coord: Coord
+
+method walls(self: GoneRoom): seq[Coord] = @[]
+method floors(self: GoneRoom): seq[Coord] = @[self.coord]
+method wallCoordAtRandom(self: GoneRoom, dir: Direction): Coord = self.coord
+
 # Map
 const MAP_SIZE: Size = (80, 24)
 type MapCell = string
@@ -200,10 +213,9 @@ proc put(self: var Map, coord: Coord, cell: MapCell) =
   self.cells[coord.y][coord.x] = cell
 
 proc putRoom(self: var Map, room: Room) =
-  for c in room.walls:
-    self.put(c, "#")
-  for c in room.floors:
-    self.put(c, ".")
+  for c in room.walls: self.put(c, "#")
+  for c in room.floors: self.put(c, ".")
+  for (d, c) in room.exits: self.put(c, "+")
 
 proc render(self: Map, console: Console): Console =
   for y in 0 ..< self.cells.len:
@@ -248,7 +260,7 @@ type Generator = ref object
   roomTable: RoomTable
   map: Map
 
-proc generateRoom(self: Generator, area: Rect): Room =
+proc generateNormalRoom(self: Generator, area: Rect): Room =
   const MIN_ROOM_SIZE: Size = (5, 5)
   let
     w = rand(MIN_ROOM_SIZE.width .. area.width).toOdd
@@ -257,21 +269,31 @@ proc generateRoom(self: Generator, area: Rect): Room =
     y = rand(area.y .. area.bottom - h).toEven
   NormalRoom(area: (coord:(x, y), size:(w, h)))
 
-proc generateRooms(self: Generator, splitSize: Size) =
+proc generateGoneRoom(self: Generator, area: Rect): Room =
+  let
+    x = rand(area.x + 1 ..< area.right).toEven
+    y = rand(area.y + 1 ..< area.bottom).toEven
+  GoneRoom(coord:(x, y))
+
+proc buildRooms(self: Generator, splitSize: Size) =
   let areaSize: Size = (int(self.size.width / splitSize.width), int(self.size.height / splitSize.height))
+  var goneRooms: HashSet[Coord]
+  for n in 0 .. splitSize.width:
+    goneRooms.incl((rand(0 ..< splitSize.width), rand(0 ..< splitSize.height)))
   for y in 0 ..< splitSize.height:
     self.roomTable.add(newSeq[Room]())
     for x in 0 ..< splitSize.width:
-      let area = (coord: (areaSize.width * x, areaSize.height * y), size: areaSize)
-      self.roomTable[y].add(self.generateRoom(area))
+      let
+        area = (coord: (areaSize.width * x, areaSize.height * y), size: areaSize)
+        room = if goneRooms.contains((x, y)):
+          self.generateGoneRoom(area)
+        else:
+          self.generateNormalRoom(area)
+      self.roomTable[y].add(room)
 
 proc putRooms(self: Generator) =
   for coord, room in self.roomTable.rooms:
     self.map.putRoom(room)
-
-proc buildRooms(self: Generator, splitSize: Size) =
-  self.generateRooms(splitSize)
-  self.putRooms()
 
 proc makePassageTo(fromCoord, toCoord: Coord): seq[Coord] =
   var current = fromCoord
@@ -285,18 +307,16 @@ proc makePassageTo(fromCoord, toCoord: Coord): seq[Coord] =
 proc connectRoom(self: Generator, roomCoord: Coord, dir: Direction) =
   let
     fromRoom = self.roomTable.roomAt(roomCoord)
-    fromRoomDoor = fromRoom.wallCoordAtRandom(dir)
-    fromCoord = fromRoomDoor + dir
+    fromRoomExit = fromRoom.wallCoordAtRandom(dir)
+    fromCoord = fromRoomExit + dir
     toRoom= self.roomTable.roomAt(roomCoord + dir)
     rdir = dir.reverse
-    toRoomDoor = toRoom.wallCoordAtRandom(rdir)
-    toCoord = toRoomDoor + rdir
+    toRoomExit = toRoom.wallCoordAtRandom(rdir)
+    toCoord = toRoomExit + rdir
   for c in fromCoord.makePassageTo(toCoord):
-    self.map.put(c, "*")
-  self.map.put(fromRoomDoor, "/")
-  self.map.put(toRoomDoor, "+")
-  fromRoom.exits.incl(dir)
-  toRoom.exits.incl(rdir)
+    self.map.put(c, ".")
+  fromRoom.setExit(dir, fromRoomExit)
+  toRoom.setExit(rdir, toRoomExit)
 
 proc buildPassages(self: Generator) =
   var coord = self.roomTable.roomCoordAtRandom
@@ -318,6 +338,7 @@ proc generate(self: Generator, splitSize: Size): Map =
   self.map = Map()
   self.buildRooms(splitSize)
   self.buildPassages
+  self.putRooms()
   self.map
 
 # Rogue
