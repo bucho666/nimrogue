@@ -5,37 +5,26 @@ import
   console,
   room,
   random,
-  symbol
+  terrain,
+  sprite
 
-type TerrainFlag = enum
-  CanWalk, CanDown
+export terrain
 
-type Terrain* = ref object
-  symbol: Symbol
-  flag: set[TerrainFlag]
+type Item = ref object of Sprite
+  number: int
 
-proc canWalk*(self: Terrain): bool = CanWalk in self.flag
-proc canDown*(self: Terrain): bool = CanDown in self.flag
+type Gold = ref object of Item
 
-proc newTerraon(glyph: char, color: Color, flag: set[TerrainFlag] = {}): Terrain =
-  Terrain(symbol: newSymbol(glyph, color), flag: flag)
-
-proc render*(self: Terrain, console: Console, coord: Coord) =
-  self.symbol.render(console, coord)
-
-let
-  Block* = newTerraon(' ', clrDefault)
-  Wall* = newTerraon('#', clrDefault)
-  Floor* = newTerraon('.', clrGreen, {CanWalk})
-  Passage* = newTerraon('.', clrDefault, {CanWalk})
-  Door* = newTerraon('+', clrYellow, {CanWalk})
-  Downstairs* = newTerraon('>', clrWhite, {CanWalk, CanDown})
+proc newGold*(gold: int, coord: Coord = (0, 0)): Gold =
+  result = cast[Gold](newSprite('$', clrYellow, coord = coord))
+  result.number = gold
 
 const MAP_SIZE*: Size = (80, 24)
 type Map* = ref object
   terrain: Matrix[Terrain, MAP_SIZE.width, MAP_SIZE.height]
   coord: Coord
   rooms: seq[Room]
+  items: seq[Item]
 
 proc newMap*(): Map =
   result = Map()
@@ -46,13 +35,24 @@ proc newMap*(): Map =
 proc setRooms*(self: var Map, rooms: seq[Room]) =
   self.rooms = rooms
 
-proc put*(self: var Map, coord: Coord, cell: Terrain) =
-  self.terrain[coord.y][coord.x] = cell
+proc putTerrain*(self: var Map, coord: Coord, terrain: Terrain) =
+  self.terrain[coord.y][coord.x] = terrain
 
-proc render*(self: Map, console: Console): Console =
+proc putItem*(self: var Map, item: Item) =
+  self.items.add(item)
+
+proc renderTerrain(self: Map, console: Console) =
   for y in 0 ..< self.terrain.len:
     for x in 0 ..< self.terrain[y].len:
       self.terrain[y][x].render(console, (x, y) + self.coord)
+
+proc renderItem(self: Map, console: Console) =
+  for item in self.items:
+    item.render(console)
+
+proc render*(self: Map, console: Console): Console =
+  self.renderTerrain(console)
+  self.renderItem(console)
 
 proc floorCoordAtRandom*(self: Map): Coord =
   var floors: seq[Coord] = @[]

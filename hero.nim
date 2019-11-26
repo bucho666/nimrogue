@@ -1,15 +1,7 @@
-import console, coord, symbol
+import sprite
+export sprite.render
 
-type Hero* = ref object
-  symbol: Symbol
-  coord*: Coord
+type Hero* = ref object of Sprite
 
 proc newHero*(color: Color = clrDefault): Hero =
-  Hero(symbol: newSymbol('@', color))
-
-proc walk*(self: Hero, dir: Coord) =
-  self.coord = self.coord + dir
-
-proc render*(self: Hero, console: Console): Console =
-  self.symbol.render(console, self.coord)
-  console.move(self.coord)
+  cast[Hero](newSprite('@', color))

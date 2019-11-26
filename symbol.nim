@@ -1,4 +1,5 @@
 import console, coord
+export console
 
 type Symbol* = object
   glyph: char

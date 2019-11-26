@@ -9,7 +9,6 @@ import
   generator,
   map
 
-
 # Key
 const
   dirKeyTable = {
@@ -72,18 +71,19 @@ proc quit(self: Rogue) =
 proc newLevel(self: Rogue) =
   self.map = newMap()
   let g = Generator().generate(MAP_SIZE, (3, 3))
-  for c in g.floors: self.map.put(c, Floor)
-  for c in g.walls: self.map.put(c, Wall)
-  for c in g.passages: self.map.put(c, Passage)
-  for c in g.exits: self.map.put(c, Door)
+  for c in g.floors: self.map.putTerrain(c, Floor)
+  for c in g.walls: self.map.putTerrain(c, Wall)
+  for c in g.passages: self.map.putTerrain(c, Passage)
+  for c in g.exits: self.map.putTerrain(c, Door)
   self.map.setRooms(toSeq(g.rooms))
-  self.map.put(self.map.floorCoordAtRandom, Downstairs)
+  self.map.putTerrain(self.map.floorCoordAtRandom, Downstairs)
   self.hero.coord = self.map.floorCoordAtRandom
+  self.map.putItem(newGold(1, self.map.floorCoordAtRandom))
 
 proc moveHero(self: Rogue, dir: Direction) =
   let newCoord = self.hero.coord + dir
   if self.map.canWalkAt(newCoord):
-    self.hero.walk(dir)
+    self.hero.coord += dir
     self.messages.add("move.")
   else:
     self.messages.add("can move.")
