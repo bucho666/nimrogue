@@ -68,7 +68,7 @@ iterator walls*(self: Generator): Coord =
 
 iterator exits*(self: Generator): Coord =
   for coord, room in self.roomTable.rooms:
-    for (d, c) in room.exits:
+    for c in room.exits:
       yield c
 
 iterator passages*(self: Generator): Coord =

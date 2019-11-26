@@ -17,7 +17,7 @@ method floors*(self: Room): seq[Coord] {.base.} = @[]
 method walls*(self: Room): seq[Coord] {.base.} = @[]
 method wallCoordAtRandom*(self: Room, dir: Direction): Coord {.base.} = discard
 method setExit*(self: Room, dir: Direction, coord: Coord) {.base.} = self.exit[dir] = coord
-method exits*(self: Room): seq[(Direction, Coord)] {.base.} = @[]
+method exits*(self: Room): seq[Coord] {.base.} = @[]
 method passages*(self: Room): seq[Coord] {.base.} = @[]
 
 # NormalRoom
@@ -63,7 +63,7 @@ method wallCoordAtRandom*(self: NormalRoom, dir: Direction): Coord =
   if dir == dirE: return (self.right, rand(self.y + 1 ..< self.bottom))
   raise newException(Exception, "Invalid Direction")
 
-method exits*(self: NormalRoom): seq[(Direction, Coord)] = toSeq(self.exit.pairs)
+method exits*(self: NormalRoom): seq[Coord] = toSeq(self.exit.values)
 
 # GoneRoom
 type GoneRoom* = ref object of Room
