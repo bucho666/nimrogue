@@ -32,28 +32,27 @@ let
   Downstairs* = newTerraon('>', clrWhite, {CanWalk, CanDown})
 
 const MAP_SIZE*: Size = (80, 24)
-type MapCell = Terrain
 type Map* = ref object
-  cells: Matrix[MapCell, MAP_SIZE.width, MAP_SIZE.height]
+  terrain: Matrix[Terrain, MAP_SIZE.width, MAP_SIZE.height]
   coord: Coord
   rooms: seq[Room]
 
 proc newMap*(): Map =
   result = Map()
-  for y in 0 ..< result.cells.len:
-    for x in 0 ..< result.cells[y].len:
-      result.cells[y][x] = Block
+  for y in 0 ..< result.terrain.len:
+    for x in 0 ..< result.terrain[y].len:
+      result.terrain[y][x] = Block
 
 proc setRooms*(self: var Map, rooms: seq[Room]) =
   self.rooms = rooms
 
-proc put*(self: var Map, coord: Coord, cell: MapCell) =
-  self.cells[coord.y][coord.x] = cell
+proc put*(self: var Map, coord: Coord, cell: Terrain) =
+  self.terrain[coord.y][coord.x] = cell
 
 proc render*(self: Map, console: Console): Console =
-  for y in 0 ..< self.cells.len:
-    for x in 0 ..< self.cells[y].len:
-      self.cells[y][x].render(console, (x, y) + self.coord)
+  for y in 0 ..< self.terrain.len:
+    for x in 0 ..< self.terrain[y].len:
+      self.terrain[y][x].render(console, (x, y) + self.coord)
 
 proc floorCoordAtRandom*(self: Map): Coord =
   var floors: seq[Coord] = @[]
@@ -61,8 +60,5 @@ proc floorCoordAtRandom*(self: Map): Coord =
     floors = self.rooms.sample.floors
   floors.sample
 
-proc at(self: Map, coord: Coord): MapCell =
-  self.cells[coord.y][coord.x]
-
-proc canWalkAt*(self: Map, coord: Coord): bool = self.at(coord).canWalk
-proc canDownAt*(self: Map, coord: Coord): bool = self.at(coord).canDown
+proc canWalkAt*(self: Map, coord: Coord): bool = self.terrain.at(coord).canWalk
+proc canDownAt*(self: Map, coord: Coord): bool = self.terrain.at(coord).canDown
