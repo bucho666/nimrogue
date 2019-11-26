@@ -56,7 +56,7 @@ proc newRogue(): Rogue =
   result = Rogue(console: newConsole(),
                  isRunning: true,
                  messages: newMessages((0, 23), 4),
-                 map: Map())
+                 map: newMap())
 
 proc render(self: Rogue) =
   self.console
@@ -83,10 +83,10 @@ proc update(self: Rogue) =
 
 proc buildMap(self: Rogue) =
   let g = Generator().generate(MAP_SIZE, (3, 3))
-  for c in g.floors: self.map.put(c, " ")
-  for c in g.walls: self.map.put(c, "#")
-  for c in g.passages: self.map.put(c, ".")
-  for c in g.exits: self.map.put(c, "+")
+  for c in g.floors: self.map.put(c, Floor)
+  for c in g.walls: self.map.put(c, Wall)
+  for c in g.passages: self.map.put(c, Passage)
+  for c in g.exits: self.map.put(c, Door)
   self.map.setRooms(toSeq(g.rooms))
 
 proc run(self: Rogue) =
