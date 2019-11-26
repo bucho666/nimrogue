@@ -20,10 +20,10 @@ proc connectedRoomCoordAtRandom(self: RoomTable): Coord =
     if self.roomAt(coord).isConnected:
       return coord
 
-iterator rooms(self: RoomTable): (Coord, Room) =
-  for y, roomTable in self:
-    for x, room in roomTable:
-      yield ((x, y), room)
+iterator rooms(self: RoomTable): Room =
+  for roomTable in self:
+    for room in roomTable:
+      yield room
 
 proc connectableDirections(self: RoomTable, coord: Coord): seq[Direction] =
   let
@@ -34,7 +34,7 @@ proc connectableDirections(self: RoomTable, coord: Coord): seq[Direction] =
     if c != s and not room.isConnectedTo(d): result.add(d)
 
 proc allConnected(self: RoomTable): bool =
-  for coord, room in self.rooms:
+  for room in self.rooms:
     if room.isNotConnected: return false
   return true
 
@@ -57,22 +57,26 @@ proc buildRooms(self: Generator, mapSize: Size, splitSize: Size) =
       self.roomTable[y].add(room)
 
 iterator floors*(self: Generator): Coord =
-  for coord, room in self.roomTable.rooms:
+  for room in self.roomTable.rooms:
     for c in room.floors:
       yield c
 
 iterator walls*(self: Generator): Coord =
-  for coord, room in self.roomTable.rooms:
+  for room in self.roomTable.rooms:
     for c in room.walls:
       yield c
 
 iterator exits*(self: Generator): Coord =
-  for coord, room in self.roomTable.rooms:
+  for room in self.roomTable.rooms:
     for c in room.exits:
       yield c
 
 iterator passages*(self: Generator): Coord =
   for c in self.passage: yield c
+
+iterator rooms*(self: Generator): Room =
+  for room in self.roomTable.rooms:
+    yield room
 
 proc makePassageTo(fromCoord, toCoord: Coord): seq[Coord] =
   var current = fromCoord

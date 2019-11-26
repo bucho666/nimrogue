@@ -1,5 +1,6 @@
 import
   tables,
+  sequtils,
   random,
   coord,
   direction,
@@ -7,6 +8,7 @@ import
   hero,
   generator,
   map
+
 
 # Key
 const
@@ -53,7 +55,6 @@ proc newRogue(): Rogue =
   randomize()
   result = Rogue(console: newConsole(),
                  isRunning: true,
-                 hero: newHero((1, 1)),
                  messages: newMessages((0, 23), 4),
                  map: Map())
 
@@ -86,10 +87,12 @@ proc buildMap(self: Rogue) =
   for c in g.walls: self.map.put(c, "#")
   for c in g.passages: self.map.put(c, ".")
   for c in g.exits: self.map.put(c, "+")
+  self.map.setRooms(toSeq(g.rooms))
 
 proc run(self: Rogue) =
   defer: self.console.cleanup
   self.buildMap
+  self.hero = newHero(self.map.floorCoordAtRandom)
   while self.isRunning:
     self.update
 
