@@ -26,10 +26,10 @@ proc render*(self: Terrain, console: Console, coord: Coord) =
 let
   Block* = newTerraon(' ', clrDefault)
   Wall* = newTerraon('#', clrDefault)
-  Floor* = newTerraon(' ', clrDefault, {CanWalk})
+  Floor* = newTerraon('.', clrGreen, {CanWalk})
   Passage* = newTerraon('.', clrDefault, {CanWalk})
-  Door* = newTerraon('+', clrDefault, {CanWalk})
-  Downstairs* = newTerraon('>', clrDefault, {CanWalk, CanDown})
+  Door* = newTerraon('+', clrYellow, {CanWalk})
+  Downstairs* = newTerraon('>', clrWhite, {CanWalk, CanDown})
 
 const MAP_SIZE*: Size = (80, 24)
 type MapCell = Terrain
