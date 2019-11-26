@@ -1,17 +1,15 @@
-import console, coord
+import console, coord, symbol
 
 type Hero* = ref object
-  glyph: char
+  symbol: Symbol
   coord*: Coord
-  color: Color
 
 proc newHero*(color: Color = clrDefault): Hero =
-  Hero(glyph: '@', color: color)
+  Hero(symbol: newSymbol('@', color))
 
 proc walk*(self: Hero, dir: Coord) =
   self.coord = self.coord + dir
 
 proc render*(self: Hero, console: Console): Console =
-  console
-    .print(self.coord, $self.glyph, self.color)
-    .move(self.coord)
+  self.symbol.render(console, self.coord)
+  console.move(self.coord)
