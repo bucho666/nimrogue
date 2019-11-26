@@ -56,7 +56,7 @@ proc newRogue(): Rogue =
   result = Rogue(console: newConsole(),
                  isRunning: true,
                  messages: newMessages((0, 23), 4),
-                 map: newMap())
+                 hero: newHero())
 
 proc render(self: Rogue) =
   self.console
@@ -69,6 +69,17 @@ proc render(self: Rogue) =
 proc quit(self: Rogue) =
   self.isRunning = false
 
+proc newLevel(self: Rogue) =
+  self.map = newMap()
+  let g = Generator().generate(MAP_SIZE, (3, 3))
+  for c in g.floors: self.map.put(c, Floor)
+  for c in g.walls: self.map.put(c, Wall)
+  for c in g.passages: self.map.put(c, Passage)
+  for c in g.exits: self.map.put(c, Door)
+  self.map.setRooms(toSeq(g.rooms))
+  self.map.put(self.map.floorCoordAtRandom, Downstairs)
+  self.hero.coord = self.map.floorCoordAtRandom
+
 proc moveHero(self: Rogue, dir: Direction) =
   let newCoord = self.hero.coord + dir
   if self.map.canWalkAt(newCoord):
@@ -77,29 +88,25 @@ proc moveHero(self: Rogue, dir: Direction) =
   else:
     self.messages.add("can move.")
 
+proc downHero(self: Rogue) =
+  if self.map.canDownAt(self.hero.coord):
+    self.newLevel
+  else:
+    self.messages.add("can't down.")
+
 proc input(self: Rogue) =
   let key = self.console.inputKey(500)
-  if key.isDirKey:
-    self.moveHero(key.toDir)
-  elif key == 'q':
-    self.quit
+  if key.isDirKey: self.moveHero(key.toDir)
+  if key == '>': self.downHero
+  elif key == 'q': self.quit
 
 proc update(self: Rogue) =
   self.render
   self.input
 
-proc buildMap(self: Rogue) =
-  let g = Generator().generate(MAP_SIZE, (3, 3))
-  for c in g.floors: self.map.put(c, Floor)
-  for c in g.walls: self.map.put(c, Wall)
-  for c in g.passages: self.map.put(c, Passage)
-  for c in g.exits: self.map.put(c, Door)
-  self.map.setRooms(toSeq(g.rooms))
-
 proc run(self: Rogue) =
   defer: self.console.cleanup
-  self.buildMap
-  self.hero = newHero(self.map.floorCoordAtRandom)
+  self.newLevel
   while self.isRunning:
     self.update
 

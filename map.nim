@@ -6,13 +6,19 @@ import
   room,
   random
 
+type TerrainFlag = enum
+  CanWalk, CanDown
+
 type Terrain* = ref object
   glyph: char
   color: Color
-  canWalk: bool
+  flag: set[TerrainFlag]
 
-proc newTerraon(glyph: char, color: Color, canWalk: bool = false): Terrain =
-  Terrain(glyph: glyph, color: color, canWalk: canWalk)
+proc canWalk*(self: Terrain): bool = CanWalk in self.flag
+proc canDown*(self: Terrain): bool = CanDown in self.flag
+
+proc newTerraon(glyph: char, color: Color, flag: set[TerrainFlag] = {}): Terrain =
+  Terrain(glyph: glyph, color: color, flag: flag)
 
 proc render*(self: Terrain, console: Console, coord: Coord) =
   console.print(coord, $self.glyph, self.color)
@@ -20,9 +26,10 @@ proc render*(self: Terrain, console: Console, coord: Coord) =
 let
   Block* = newTerraon(' ', clrDefault)
   Wall* = newTerraon('#', clrDefault)
-  Floor* = newTerraon(' ', clrDefault, true)
-  Passage* = newTerraon('.', clrDefault, true)
-  Door* = newTerraon('+', clrDefault, true)
+  Floor* = newTerraon(' ', clrDefault, {CanWalk})
+  Passage* = newTerraon('.', clrDefault, {CanWalk})
+  Door* = newTerraon('+', clrDefault, {CanWalk})
+  Downstairs* = newTerraon('>', clrDefault, {CanWalk, CanDown})
 
 const MAP_SIZE*: Size = (80, 24)
 type MapCell = Terrain
@@ -54,5 +61,8 @@ proc floorCoordAtRandom*(self: Map): Coord =
     floors = self.rooms.sample.floors
   floors.sample
 
-proc canWalkAt*(self: Map, coord: Coord): bool =
-  self.cells[coord.y][coord.x].canWalk
+proc at(self: Map, coord: Coord): MapCell =
+  self.cells[coord.y][coord.x]
+
+proc canWalkAt*(self: Map, coord: Coord): bool = self.at(coord).canWalk
+proc canDownAt*(self: Map, coord: Coord): bool = self.at(coord).canDown
