@@ -69,11 +69,18 @@ proc render(self: Rogue) =
 proc quit(self: Rogue) =
   self.isRunning = false
 
+proc moveHero(self: Rogue, dir: Direction) =
+  let newCoord = self.hero.coord + dir
+  if self.map.canWalkAt(newCoord):
+    self.hero.walk(dir)
+    self.messages.add("move.")
+  else:
+    self.messages.add("can move.")
+
 proc input(self: Rogue) =
   let key = self.console.inputKey(500)
   if key.isDirKey:
-    self.hero.walk(key.toDir)
-    self.messages.add($key)
+    self.moveHero(key.toDir)
   elif key == 'q':
     self.quit
 

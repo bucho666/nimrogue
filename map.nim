@@ -53,3 +53,6 @@ proc floorCoordAtRandom*(self: Map): Coord =
   while floors.len == 0:
     floors = self.rooms.sample.floors
   floors.sample
+
+proc canWalkAt*(self: Map, coord: Coord): bool =
+  self.cells[coord.y][coord.x].canWalk

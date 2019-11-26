@@ -11,6 +11,9 @@ proc newHero*(coord: Coord, color: Color = clrDefault): Hero =
 proc walk*(self: Hero, dir: Coord) =
   self.coord = self.coord + dir
 
+proc coord*(self: Hero): Coord =
+  self.coord
+
 proc render*(self: Hero, console: Console): Console =
   console
     .print(self.coord, $self.glyph, self.color)
