@@ -51,6 +51,7 @@ type StatusLine = ref object
 proc render(self: StatusLine, console: Console): Console =
   console.print(self.coord, fmt"level: {self.level}")
 
+const LastFloor = 3
 # Rogue
 type Rogue = ref object
   console: Console
@@ -93,6 +94,27 @@ proc newLevel(self: Rogue) =
   self.hero.coord = self.map.floorCoordAtRandom
   self.map.putItem(newGold(1, self.map.floorCoordAtRandom))
 
+proc win(self: Rogue) =
+  var
+    key = '\0'
+    color = clrWhite
+  while key != 'q':
+    self.console
+      .erase
+      .print((0, 0), "*** You Made it!! ***", color)
+      .print((0, 1), "(press 'q' to exit.)")
+      .flush
+    color = if color == clrYellow: clrWhite else: clrYellow
+    key = self.console.inputKey(100)
+
+proc downFloor(self: Rogue) =
+  self.level.inc
+  if self.level > LastFloor:
+    self.win
+    self.isRunning = false
+  else:
+    self.newLevel
+
 proc moveHero(self: Rogue, dir: Direction) =
   let newCoord = self.hero.coord + dir
   if self.map.canWalkAt(newCoord):
@@ -104,7 +126,7 @@ proc moveHero(self: Rogue, dir: Direction) =
 proc downHero(self: Rogue) =
   self.level.inc
   if self.map.canDownAt(self.hero.coord):
-    self.newLevel
+    self.downFloor
   else:
     self.messages.add("can't down.")
 
@@ -112,9 +134,7 @@ proc input(self: Rogue) =
   let key = self.console.inputKey(500)
   if key.isDirKey: self.moveHero(key.toDir)
   if key == '>': self.downHero
-  if key == 'd':
-    self.newlevel
-    self.level.inc
+  if key == 'd': self.downFloor
   elif key == 'q': self.quit
 
 proc update(self: Rogue) =
