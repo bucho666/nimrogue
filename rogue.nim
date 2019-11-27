@@ -5,7 +5,7 @@ import
   coord,
   direction,
   console,
-  hero,
+  objects,
   generator,
   map
 
@@ -98,6 +98,7 @@ proc input(self: Rogue) =
   let key = self.console.inputKey(500)
   if key.isDirKey: self.moveHero(key.toDir)
   if key == '>': self.downHero
+  if key == 'd': self.newlevel
   elif key == 'q': self.quit
 
 proc update(self: Rogue) =

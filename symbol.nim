@@ -8,5 +8,6 @@ type Symbol* = object
 proc newSymbol*(glyph: char, color: Color): Symbol =
   Symbol(glyph: glyph, color: color)
 
-proc render*(self: Symbol, console: Console, coord: Coord) =
+proc render*(self: Symbol, console: Console, coord: Coord): Console {.discardable.} =
   console.print(coord, $self.glyph, self.color)
+  console

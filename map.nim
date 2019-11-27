@@ -6,18 +6,9 @@ import
   room,
   random,
   terrain,
-  sprite
+  objects
 
 export terrain
-
-type Item = ref object of Sprite
-  number: int
-
-type Gold = ref object of Item
-
-proc newGold*(gold: int, coord: Coord = (0, 0)): Gold =
-  result = cast[Gold](newSprite('$', clrYellow, coord = coord))
-  result.number = gold
 
 const MAP_SIZE*: Size = (80, 24)
 type Map* = ref object
