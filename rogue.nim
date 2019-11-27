@@ -7,7 +7,8 @@ import
   console,
   objects,
   generator,
-  map
+  map,
+  strformat
 
 # Key
 const
@@ -42,6 +43,14 @@ proc render(self: Messages, console: Console): Console =
     console.print((x, y + index), message)
   console
 
+# StatusLine
+type StatusLine = ref object
+  coord: Coord
+  level: int
+
+proc render(self: StatusLine, console: Console): Console =
+  console.print(self.coord, fmt"level: {self.level}")
+
 # Rogue
 type Rogue = ref object
   console: Console
@@ -49,13 +58,15 @@ type Rogue = ref object
   hero: Hero
   messages: Messages
   map: Map
+  level: int
 
 proc newRogue(): Rogue =
   randomize()
   result = Rogue(console: newConsole(),
                  isRunning: true,
-                 messages: newMessages((0, 23), 4),
-                 hero: newHero())
+                 messages: newMessages((0, 24), 4),
+                 hero: newHero(),
+                 level: 1)
 
 proc render(self: Rogue) =
   self.console
@@ -63,6 +74,8 @@ proc render(self: Rogue) =
     .render(self.messages)
     .render(self.map)
     .render(self.hero)
+    .render(StatusLine(coord: (0, 23), level: self.level))
+    .move(self.hero.coord)
     .flush
 
 proc quit(self: Rogue) =
@@ -89,6 +102,7 @@ proc moveHero(self: Rogue, dir: Direction) =
     self.messages.add("can move.")
 
 proc downHero(self: Rogue) =
+  self.level.inc
   if self.map.canDownAt(self.hero.coord):
     self.newLevel
   else:
@@ -98,7 +112,9 @@ proc input(self: Rogue) =
   let key = self.console.inputKey(500)
   if key.isDirKey: self.moveHero(key.toDir)
   if key == '>': self.downHero
-  if key == 'd': self.newlevel
+  if key == 'd':
+    self.newlevel
+    self.level.inc
   elif key == 'q': self.quit
 
 proc update(self: Rogue) =
