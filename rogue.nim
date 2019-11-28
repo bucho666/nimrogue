@@ -51,23 +51,53 @@ type StatusLine = ref object
 proc render(self: StatusLine, console: Console): Console =
   console.print(self.coord, fmt"level: {self.level}")
 
+# Dungeon
+type Dungeon = ref object
+  level*: int
+  maps: seq[Map]
+
+proc buildLevel(level: int): Map =
+  var map = newMap()
+  let g = Generator().generate(MAP_SIZE, (3, 3))
+  for c in g.floors: map.putTerrain(c, Floor)
+  for c in g.walls: map.putTerrain(c, Wall)
+  for c in g.passages: map.putTerrain(c, Passage)
+  for c in g.exits: map.putTerrain(c, Door)
+  map.setRooms(toSeq(g.rooms))
+  map.putTerrain(map.floorCoordAtRandom, Downstairs)
+  let gold = rand(0 .. 50 + 10 * level) + 2
+  map.putItem(newGold(gold, map.floorCoordAtRandom))
+  map
+
+proc newDungeon(lastFloor: int): Dungeon =
+  result = Dungeon()
+  for level in 0 ..< lastFloor:
+    result.maps.add(buildLevel(level))
+
+proc currentMap(self: Dungeon): Map =
+  self.maps[self.level - 1]
+
+proc isLastMap(self: Dungeon): bool =
+  self.maps.len == self.level
+
 # Rogue
 const LastFloor = 3
 type Rogue = ref object
   isRunning: bool
   console: Console
   hero: Hero
+  dungeon: Dungeon
   messages: Messages
-  map: Map
-  level: int
+
+proc map(self: Rogue): Map = self.dungeon.currentMap
 
 proc newRogue(): Rogue =
   randomize()
   result = Rogue(console: newConsole(),
                  isRunning: true,
-                 messages: newMessages((0, 24), 4),
+                 dungeon: newDungeon(LastFloor),
                  hero: newHero(),
-                 level: 1)
+                 messages: newMessages((0, 24), 4))
 
 proc render(self: Rogue) =
   self.console
@@ -75,25 +105,12 @@ proc render(self: Rogue) =
     .render(self.messages)
     .render(self.map)
     .render(self.hero)
-    .render(StatusLine(coord: (0, 23), level: self.level))
+    .render(StatusLine(coord: (0, 23), level: self.dungeon.level))
     .move(self.hero.coord)
     .flush
 
 proc quit(self: Rogue) =
   self.isRunning = false
-
-proc newLevel(self: Rogue) =
-  self.map = newMap()
-  let g = Generator().generate(MAP_SIZE, (3, 3))
-  for c in g.floors: self.map.putTerrain(c, Floor)
-  for c in g.walls: self.map.putTerrain(c, Wall)
-  for c in g.passages: self.map.putTerrain(c, Passage)
-  for c in g.exits: self.map.putTerrain(c, Door)
-  self.map.setRooms(toSeq(g.rooms))
-  self.map.putTerrain(self.map.floorCoordAtRandom, Downstairs)
-  self.hero.coord = self.map.floorCoordAtRandom
-  let gold = rand(0 .. 50 + 10 * self.level) + 2
-  self.map.putItem(newGold(gold, self.map.floorCoordAtRandom))
 
 proc win(self: Rogue) =
   var
@@ -109,12 +126,12 @@ proc win(self: Rogue) =
     key = self.console.inputKey(100)
 
 proc downFloor(self: Rogue) =
-  self.level.inc
-  if self.level > LastFloor:
+  if self.dungeon.isLastMap:
     self.win
     self.quit
   else:
-    self.newLevel
+    self.dungeon.level.inc
+    self.hero.coord = self.map.floorCoordAtRandom
 
 proc moveHero(self: Rogue, dir: Direction) =
   let newCoord = self.hero.coord + dir
@@ -125,7 +142,6 @@ proc moveHero(self: Rogue, dir: Direction) =
     self.messages.add("can move.")
 
 proc downHero(self: Rogue) =
-  self.level.inc
   if self.map.canDownAt(self.hero.coord):
     self.downFloor
   else:
@@ -144,7 +160,7 @@ proc update(self: Rogue) =
 
 proc run(self: Rogue) =
   defer: self.console.cleanup
-  self.newLevel
+  self.downFloor
   while self.isRunning:
     self.update
 
