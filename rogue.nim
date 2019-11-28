@@ -5,7 +5,7 @@ import
   coord,
   direction,
   console,
-  objects,
+  entity,
   generator,
   map,
   strformat
@@ -51,11 +51,11 @@ type StatusLine = ref object
 proc render(self: StatusLine, console: Console): Console =
   console.print(self.coord, fmt"level: {self.level}")
 
-const LastFloor = 3
 # Rogue
+const LastFloor = 3
 type Rogue = ref object
-  console: Console
   isRunning: bool
+  console: Console
   hero: Hero
   messages: Messages
   map: Map
@@ -92,7 +92,8 @@ proc newLevel(self: Rogue) =
   self.map.setRooms(toSeq(g.rooms))
   self.map.putTerrain(self.map.floorCoordAtRandom, Downstairs)
   self.hero.coord = self.map.floorCoordAtRandom
-  self.map.putItem(newGold(1, self.map.floorCoordAtRandom))
+  let gold = rand(0 .. 50 + 10 * self.level) + 2
+  self.map.putItem(newGold(gold, self.map.floorCoordAtRandom))
 
 proc win(self: Rogue) =
   var
@@ -111,7 +112,7 @@ proc downFloor(self: Rogue) =
   self.level.inc
   if self.level > LastFloor:
     self.win
-    self.isRunning = false
+    self.quit
   else:
     self.newLevel
 

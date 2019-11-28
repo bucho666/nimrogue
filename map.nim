@@ -6,7 +6,7 @@ import
   room,
   random,
   terrain,
-  objects
+  entity
 
 export terrain
 
