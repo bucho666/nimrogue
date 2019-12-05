@@ -8,28 +8,15 @@ import
   entity,
   generator,
   map,
-  strformat
-
-# Key
-const
-  dirKeyTable = {
-    'h': dirW, 'j': dirS, 'k': dirN, 'l': dirE,
-    'y': dirNW, 'u': dirNE, 'b': dirSW, 'n': dirSE,
-  }.toTable
-
-proc isDirKey(key: char): bool =
-  key in dirKeyTable
-
-proc toDir(key: char): Coord =
-  dirKeyTable[key]
+  strformat,
+  symbol
 
 # Messages
 type Messages = ref object
-  coord: Coord
   messages: seq[string]
 
-proc newMessages(coord: Coord, max: uint=4): Messages =
-  result = Messages(coord: coord)
+proc newMessages(max: uint=4): Messages =
+  result = Messages()
   for i in 0 ..< max:
     result.messages.add("")
 
@@ -37,24 +24,14 @@ proc add(self: Messages, message: string) =
   self.messages.insert(message, 0)
   discard self.messages.pop
 
-proc render(self: Messages, console: Console): Console =
-  let (x, y) = self.coord
-  for index, message in self.messages:
-    console.print((x, y + index), message)
-  console
-
-# StatusLine
-type StatusLine = ref object
-  coord: Coord
-  level: int
-
-proc render(self: StatusLine, console: Console): Console =
-  console.print(self.coord, fmt"level: {self.level}")
+iterator pairs(self: Messages): (int, string)=
+  for n, message in self.messages:
+    yield (n, message)
 
 # Dungeon
 type Dungeon = ref object
-  level*: int
   maps: seq[Map]
+  hero: Hero
 
 proc buildLevel(level: int): Map =
   var map = newMap()
@@ -69,100 +46,169 @@ proc buildLevel(level: int): Map =
   map.putItem(newGold(gold, map.floorCoordAtRandom))
   map
 
+proc mapOnHero(self: Dungeon): Map =
+  self.maps[self.hero.floor - 1]
+
+proc putHeroAtRandom(self: Dungeon) =
+  self.hero.coord = self.mapOnHero.floorCoordAtRandom
+
 proc newDungeon(lastFloor: int): Dungeon =
-  result = Dungeon()
+  result = Dungeon(hero: newHero())
   for level in 0 ..< lastFloor:
     result.maps.add(buildLevel(level))
+  result.putHeroAtRandom
 
-proc currentMap(self: Dungeon): Map =
-  self.maps[self.level - 1]
+proc lastFloor(self: Dungeon): int =
+  self.maps.len
 
-proc isLastMap(self: Dungeon): bool =
-  self.maps.len == self.level
+proc nextFloor(self: Dungeon) =
+  self.hero.floor.inc
+  if self.lastFloor >= self.hero.floor:
+    self.putHeroAtRandom
 
-# Rogue
-const LastFloor = 3
-type Rogue = ref object
-  isRunning: bool
-  console: Console
+proc heroOnGoal(self: Dungeon): bool =
+  self.lastFloor < self.hero.floor
+
+# Screen
+type Screen = ref object
   hero: Hero
-  dungeon: Dungeon
   messages: Messages
+  map_tile: Table[Coord, Symbol]
 
-proc map(self: Rogue): Map = self.dungeon.currentMap
+proc newScreen(hero: Hero): Screen =
+  Screen(
+    hero: hero,
+    messages: newMessages(4),
+  )
 
-proc newRogue(): Rogue =
-  randomize()
-  result = Rogue(console: newConsole(),
-                 isRunning: true,
-                 dungeon: newDungeon(LastFloor),
-                 hero: newHero(),
-                 messages: newMessages((0, 24), 4))
+proc add_message(self: Screen, message: string) = self.messages.add(message)
+proc update_map*(self: Screen, coord: Coord, symbol: Symbol) =
+  self.map_tile[coord] = symbol
 
-proc render(self: Rogue) =
-  self.console
+proc render(self: Screen, console: Console) =
+  discard console.erase
+  for coord, symbol in self.map_tile:
+    console.print(coord, $symbol.glyph, symbol.color)
+  for i, message in self.messages:
+    console.print((0, 24 + i), message)
+  console.print((0, 23), fmt"level: {self.hero.floor}")
+  console.flush
+  self.map_tile.clear
+
+type Command = ref object of RootObj
+method execute(self: Command) {.base.} = discard
+
+# Move
+type Move = ref object of Command
+  direction: Direction
+  dungeon: Dungeon
+  screen: Screen
+
+proc newMove(direction: Direction, dungeon: Dungeon, screen: Screen): Command =
+  Move(direction: direction, dungeon: dungeon, screen: screen)
+
+method execute(self: Move) =
+  let newCoord = self.dungeon.hero.coord + self.direction
+  if self.dungeon.mapOnHero.canWalkAt(newCoord):
+    self.dungeon.hero.coord += self.direction
+    self.screen.add_message("move.")
+  else:
+    self.screen.add_message("can't move.")
+
+# Down Floor
+type DownFloor = ref object of Command
+  dungeon: Dungeon
+  screen: Screen
+
+proc newDownFloor(dungeon: Dungeon, screen: Screen): Command =
+  DownFloor(dungeon: dungeon, screen: screen)
+
+method execute(self: DownFloor) =
+  let
+    map = self.dungeon.mapOnHero
+    hero = self.dungeon.hero
+  if map.canDownAt(hero.coord) == false:
+    self.screen.add_message("can't down")
+    return
+  self.dungeon.nextFloor
+
+# Scene
+type Scene = ref object of RootObj
+method render(self: Scene, console: Console) {.base.} = discard
+method input(self: Scene, console: Console): Scene {.base.} = discard
+method update(self: Scene, console: Console): Scene {.base.} =
+  self.render(console)
+  self.input(console)
+
+# WinScene
+type WinScene = ref object of Scene
+  color: Color
+
+proc newWinScene(): WinScene =
+  WinScene(color: clrWhite)
+
+method render(self: WinScene, console: Console) =
+  console
     .erase
-    .render(self.messages)
-    .render(self.map)
-    .render(self.hero)
-    .render(StatusLine(coord: (0, 23), level: self.dungeon.level))
-    .move(self.hero.coord)
+    .print((0, 0), "*** You Made it!! ***", self.color)
+    .print((0, 1), "(press 'q' to exit.)")
     .flush
+  self.color = if self.color == clrYellow: clrWhite else: clrYellow
 
-proc quit(self: Rogue) =
-  self.isRunning = false
+method input(self: WinScene, console: Console): Scene =
+  result = self
+  if console.inputKey(100) == 'q':
+    return nil
 
-proc win(self: Rogue) =
-  var
-    key = '\0'
-    color = clrWhite
-  while key != 'q':
-    self.console
-      .erase
-      .print((0, 0), "*** You Made it!! ***", color)
-      .print((0, 1), "(press 'q' to exit.)")
-      .flush
-    color = if color == clrYellow: clrWhite else: clrYellow
-    key = self.console.inputKey(100)
+# MainScene
+type MainScene = ref object of Scene
+  dungeon: Dungeon
+  screen: Screen
+  command: Table[char, Command]
 
-proc downFloor(self: Rogue) =
-  if self.dungeon.isLastMap:
-    self.win
-    self.quit
-  else:
-    self.dungeon.level.inc
-    self.hero.coord = self.map.floorCoordAtRandom
+proc newMainScene(dungeon: Dungeon): MainScene =
+  let screen = newScreen(dungeon.hero)
+  result = MainScene(
+    dungeon: dungeon,
+    screen: screen,
+    command: {
+      'h': newMove(dirW, dungeon, screen),
+      'j': newMove(dirS, dungeon, screen),
+      'k': newMove(dirN, dungeon, screen),
+      'l': newMove(dirE, dungeon, screen),
+      'y': newMove(dirNW, dungeon, screen),
+      'u': newMove(dirNE, dungeon, screen),
+      'b': newMove(dirSW, dungeon, screen),
+      'n': newMove(dirSE, dungeon, screen),
+      '>': newDownFloor(dungeon, screen)
+    }.toTable)
 
-proc moveHero(self: Rogue, dir: Direction) =
-  let newCoord = self.hero.coord + dir
-  if self.map.canWalkAt(newCoord):
-    self.hero.coord += dir
-    self.messages.add("move.")
-  else:
-    self.messages.add("can move.")
+method render(self: MainScene, console: Console) =
+  for coord, symbol in self.dungeon.mapOnHero.tiles:
+    self.screen.update_map(coord, symbol)
+  self.screen.update_map(self.dungeon.hero.coord, self.dungeon.hero.symbol)
+  self.screen.render(console)
 
-proc downHero(self: Rogue) =
-  if self.map.canDownAt(self.hero.coord):
-    self.downFloor
-  else:
-    self.messages.add("can't down.")
+method input(self: MainScene, console: Console): Scene =
+  result = self
+  let key = console.inputKey(500)
+  if key == 'q': return nil
+  if key == 'd': self.dungeon.nextFloor # debug
+  if key in self.command:
+    self.command[key].execute
+  if self.dungeon.heroOnGoal:
+    return newWinScene()
 
-proc input(self: Rogue) =
-  let key = self.console.inputKey(500)
-  if key.isDirKey: self.moveHero(key.toDir)
-  if key == '>': self.downHero
-  if key == 'd': self.downFloor
-  elif key == 'q': self.quit
-
-proc update(self: Rogue) =
-  self.render
-  self.input
-
-proc run(self: Rogue) =
-  defer: self.console.cleanup
-  self.downFloor
-  while self.isRunning:
-    self.update
+# Main
+proc main() =
+  randomize()
+  let
+    console = newConsole()
+    dungeon = newDungeon(3)
+  var scene: Scene = newMainScene(dungeon)
+  defer: console.cleanup
+  while scene != nil:
+    scene = scene.update(console)
 
 when isMainModule:
-  newRogue().run()
+  main()

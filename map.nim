@@ -2,11 +2,11 @@ import
   coord,
   size,
   matrix,
-  console,
   room,
   random,
   terrain,
-  entity
+  entity,
+  symbol
 
 export terrain
 
@@ -32,18 +32,12 @@ proc putTerrain*(self: var Map, coord: Coord, terrain: Terrain) =
 proc putItem*(self: var Map, item: Item) =
   self.items.add(item)
 
-proc renderTerrain(self: Map, console: Console) =
+iterator tiles*(self: Map): (Coord, Symbol) =
   for y in 0 ..< self.terrain.len:
     for x in 0 ..< self.terrain[y].len:
-      self.terrain[y][x].render(console, (x, y) + self.coord)
-
-proc renderItem(self: Map, console: Console) =
+      yield ((x, y), self.terrain[y][x].symbol)
   for item in self.items:
-    item.render(console)
-
-proc render*(self: Map, console: Console): Console =
-  self.renderTerrain(console)
-  self.renderItem(console)
+    yield (item.coord, item.symbol)
 
 proc floorCoordAtRandom*(self: Map): Coord =
   var floors: seq[Coord] = @[]

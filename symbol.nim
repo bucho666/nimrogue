@@ -1,13 +1,11 @@
-import console, coord
-export console
+import console
 
 type Symbol* = object
   glyph: char
   color: Color
 
+proc glyph*(self: Symbol): char = self.glyph
+proc color*(self: Symbol): Color = self.color
+
 proc newSymbol*(glyph: char, color: Color): Symbol =
   Symbol(glyph: glyph, color: color)
-
-proc render*(self: Symbol, console: Console, coord: Coord): Console {.discardable.} =
-  console.print(coord, $self.glyph, self.color)
-  console

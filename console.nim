@@ -21,9 +21,6 @@ proc print*(self: Console, coord: Coord, str: string, fg: Color = clrDefault): C
   self.print(coord.x, coord.y, str, fg)
   self
 
-template render*(self: Console, renderable: untyped): Console =
-  renderable.render(self)
-
 proc flush*(self: Console) =
   self.present
 

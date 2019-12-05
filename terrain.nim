@@ -1,10 +1,10 @@
-import coord, symbol
+import console, symbol
 
 type TerrainFlag = enum
   CanWalk, CanDown
 
 type Terrain* = ref object
-  symbol: Symbol
+  symbol*: Symbol
   flag: set[TerrainFlag]
 
 proc canWalk*(self: Terrain): bool = CanWalk in self.flag
@@ -12,9 +12,6 @@ proc canDown*(self: Terrain): bool = CanDown in self.flag
 
 proc newTerraon(glyph: char, color: Color, flag: set[TerrainFlag] = {}): Terrain =
   Terrain(symbol: newSymbol(glyph, color), flag: flag)
-
-proc render*(self: Terrain, console: Console, coord: Coord) =
-  self.symbol.render(console, coord)
 
 let
   Block* = newTerraon(' ', clrDefault)
