@@ -1,8 +1,8 @@
 import
   random,
   nimboxconsole,
-  entities/dungeon,
-  mainscene
+  app/entity/dungeon,
+  app/mainscene
 
 proc main() =
   randomize()

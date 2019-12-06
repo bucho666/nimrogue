@@ -1,10 +1,4 @@
-import
-  random,
-  sets,
-  coord,
-  direction,
-  size,
-  room
+import random, sets, coord, direction, size, room
 
 # RoomTable
 type RoomTable = seq[seq[Room]]

@@ -1,9 +1,4 @@
-import
-  sequtils,
-  random,
-  entity,
-  generator,
-  map
+import sequtils, random, entity, generator, map
 
 type Dungeon* = ref object
   maps: seq[Map]

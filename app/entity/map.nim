@@ -1,13 +1,4 @@
-import
-  coord,
-  size,
-  matrix,
-  room,
-  random,
-  terrain,
-  entity,
-  tile
-
+import coord, size, matrix, room, random, terrain, entity, tile
 export terrain
 
 const MAP_SIZE*: Size = (80, 24)

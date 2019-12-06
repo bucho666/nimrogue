@@ -1,12 +1,4 @@
-import
-  "entities"/[
-    coord,
-    direction,
-    entity,
-    map,
-    dungeon
-  ],
-  screen
+import "entity"/[ coord, direction, entity, map, dungeon ], screen
 
 type Command* = ref object of RootObj
 method execute*(self: Command) {.base.} = discard

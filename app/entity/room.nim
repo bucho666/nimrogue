@@ -1,11 +1,4 @@
-import
-  tables,
-  random,
-  sequtils,
-  coord,
-  direction,
-  rect,
-  size
+import tables, random, sequtils, coord, direction, rect, size
 
 type Room* = ref object of RootObj
   exit: Table[Direction, Coord]

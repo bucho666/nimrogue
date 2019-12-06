@@ -1,15 +1,7 @@
-import "entities"/[
-    direction,
-    entity,
-    map,
-    dungeon
-  ],
+import
   tables,
-  scene,
-  console,
-  screen,
-  command,
-  endingscene
+  "entity"/[direction, entity, map, dungeon],
+  scene, console, screen, command, endingscene
 
 export scene
 
