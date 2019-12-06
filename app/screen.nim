@@ -1,4 +1,4 @@
-import tables, strformat, "entity"/[ coord, entity, tile, ], console
+import tables, strformat, entity/[coord, hero, tile], console
 
 # Messages
 type Messages = ref object

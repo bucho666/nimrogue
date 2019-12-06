@@ -1,6 +1,7 @@
-import "entity"/[ coord, direction, entity, map, dungeon ], screen
+import strformat, entity/[coord, direction, hero, item, map, dungeon], screen
 
 type Command* = ref object of RootObj
+
 method execute*(self: Command) {.base.} = discard
 
 # Move
@@ -12,11 +13,21 @@ type Move = ref object of Command
 proc newMove*(direction: Direction, dungeon: Dungeon, screen: Screen): Command =
   Move(direction: direction, dungeon: dungeon, screen: screen)
 
+{.warning[LockLevel]: off.}
+
 method execute(self: Move) =
-  let newCoord = self.dungeon.hero.coord + self.direction
-  if self.dungeon.mapOnHero.canWalkAt(newCoord):
-    self.dungeon.hero.coord += self.direction
-    self.screen.add_message("move.")
+  let
+    newCoord = self.dungeon.hero.coord + self.direction
+    map = self.dungeon.mapOnHero
+    hero = self.dungeon.hero
+  if map.canWalkAt(newCoord):
+    hero.coord = newCoord
+    let item = map.itemAt(newCoord)
+    if item.isNil:
+      self.screen.add_message("move.")
+    else:
+      hero.getItem(item)
+      self.screen.add_message(fmt"get {item.name} ({item.number})")
   else:
     self.screen.add_message("can't move.")
 

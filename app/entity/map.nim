@@ -1,4 +1,4 @@
-import coord, size, matrix, room, random, terrain, entity, tile
+import sugar, sequtils, coord, size, matrix, room, random, terrain, item, tile
 export terrain
 
 const MAP_SIZE*: Size = (80, 24)
@@ -22,6 +22,10 @@ proc putTerrain*(self: var Map, coord: Coord, terrain: Terrain) =
 
 proc putItem*(self: var Map, item: Item) =
   self.items.add(item)
+
+proc itemAt*(self: Map, coord: Coord): Item =
+  let items = self.items.filter((item)=>item.coord == coord)
+  if items.len == 0: nil else: items[0]
 
 iterator tiles*(self: Map): (Coord, Tile) =
   for y in 0 ..< self.terrain.len:
