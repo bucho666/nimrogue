@@ -1,9 +1,11 @@
 import
-  coord,
-  direction,
-  entity,
-  map,
-  dungeon,
+  "entities"/[
+    coord,
+    direction,
+    entity,
+    map,
+    dungeon
+  ],
   screen
 
 type Command* = ref object of RootObj

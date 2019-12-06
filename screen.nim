@@ -1,10 +1,12 @@
 import
   tables,
-  coord,
-  console,
-  entity,
   strformat,
-  symbol
+  "entities"/[
+    coord,
+    entity,
+    tile,
+  ],
+  console
 
 # Messages
 type Messages = ref object
@@ -19,7 +21,7 @@ proc add(self: Messages, message: string) =
   self.messages.insert(message, 0)
   discard self.messages.pop
 
-iterator pairs(self: Messages): (int, string)=
+iterator pairs*(self: Messages): (int, string)=
   for n, message in self.messages:
     yield (n, message)
 
@@ -27,23 +29,23 @@ iterator pairs(self: Messages): (int, string)=
 type Screen* = ref object
   hero: Hero
   messages: Messages
-  map_tile: Table[Coord, Symbol]
+  map_tile: Table[Coord, Tile]
 
 proc newScreen*(hero: Hero): Screen =
   Screen(
     hero: hero,
     messages: newMessages(4),
   )
-proc update_map*(self: Screen, coord: Coord, symbol: Symbol) =
-  self.map_tile[coord] = symbol
+proc update_map*(self: Screen, coord: Coord, tile: Tile) =
+  self.map_tile[coord] = tile
 
 proc add_message*(self: Screen, message: string) =
   self.messages.add(message)
 
 proc render*(self: Screen, console: Console) =
   discard console.erase
-  for coord, symbol in self.map_tile:
-    console.print(coord, $symbol.glyph, symbol.color)
+  for coord, tile in self.map_tile:
+    console.print(coord, tile)
   for i, message in self.messages:
     console.print((0, 24 + i), message)
   console.print((0, 23), fmt"level: {self.hero.floor}")

@@ -1,11 +1,12 @@
-import
-  scene,
+import "entities"/[
+    direction,
+    entity,
+    map,
+    dungeon
+  ],
   tables,
-  direction,
+  scene,
   console,
-  entity,
-  map,
-  dungeon,
   screen,
   command,
   endingscene
@@ -35,9 +36,9 @@ proc newMainScene*(dungeon: Dungeon): Scene =
     }.toTable)
 
 method render(self: MainScene, console: Console) =
-  for coord, symbol in self.dungeon.mapOnHero.tiles:
-    self.screen.update_map(coord, symbol)
-  self.screen.update_map(self.dungeon.hero.coord, self.dungeon.hero.symbol)
+  for coord, tile in self.dungeon.mapOnHero.tiles:
+    self.screen.update_map(coord, tile)
+  self.screen.update_map(self.dungeon.hero.coord, self.dungeon.hero.tile)
   self.screen.render(console)
 
 method input(self: MainScene, console: Console): Scene =

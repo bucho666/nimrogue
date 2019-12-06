@@ -1,32 +1,26 @@
-import nimbox, coord
-export nimbox.Color
+import
+  "entities"/[
+    coord,
+    tile
+  ]
 
-type Console* = Nimbox
+type
+  Console* = ref object of RootObj
+  Color* {.pure.} = enum
+    Default
+    Black
+    Red
+    Green
+    Yellow
+    Blue
+    Magenta
+    Cyan
+    White
 
-proc newConsole*(): Console =
-  newNimbox()
-
-proc cleanup*(self: Console) =
-  self.shutdown()
-
-proc erase*(self: Console): Console =
-  self.clear
-  self
-
-proc move*(self: Console, coord: Coord): Console =
-  self.cursor = coord
-  self
-
-proc print*(self: Console, coord: Coord, str: string, fg: Color = clrDefault): Console {.discardable.} =
-  self.print(coord.x, coord.y, str, fg)
-  self
-
-proc flush*(self: Console) =
-  self.present
-
-proc inputKey*(self: Console, timeout: int = -1): char =
-  let event = if timeout == -1:
-    self.pollEvent
-  else:
-    self.peekEvent(timeout)
-  if event.kind == EventType.Key: event.ch else: '\0'
+method cleanup*(self: Console) {.base.} = discard
+method erase*(self: Console): Console{.base.} = discard
+method move*(self: Console, coord: Coord): Console {.base.} = discard
+method print*(self: Console, coord: Coord, str: string, fg: Color = Color.Default): Console {.discardable base.} = discard
+method print*(self: Console, coord: Coord, tile: Tile): Console {.discardable base.} = discard
+method flush*(self: Console) {.base.} = discard
+method inputKey*(self: Console, timeout: int = -1): char {.base.} = discard

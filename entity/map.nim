@@ -6,7 +6,7 @@ import
   random,
   terrain,
   entity,
-  symbol
+  tile
 
 export terrain
 
@@ -21,7 +21,7 @@ proc newMap*(): Map =
   result = Map()
   for y in 0 ..< result.terrain.len:
     for x in 0 ..< result.terrain[y].len:
-      result.terrain[y][x] = Block
+      result.terrain[y][x] = Blank
 
 proc setRooms*(self: var Map, rooms: seq[Room]) =
   self.rooms = rooms
@@ -32,12 +32,12 @@ proc putTerrain*(self: var Map, coord: Coord, terrain: Terrain) =
 proc putItem*(self: var Map, item: Item) =
   self.items.add(item)
 
-iterator tiles*(self: Map): (Coord, Symbol) =
+iterator tiles*(self: Map): (Coord, Tile) =
   for y in 0 ..< self.terrain.len:
     for x in 0 ..< self.terrain[y].len:
-      yield ((x, y), self.terrain[y][x].symbol)
+      yield ((x, y), self.terrain[y][x].tile)
   for item in self.items:
-    yield (item.coord, item.symbol)
+    yield (item.coord, item.tile)
 
 proc floorCoordAtRandom*(self: Map): Coord =
   var floors: seq[Coord] = @[]

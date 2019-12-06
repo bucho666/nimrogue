@@ -1,14 +1,14 @@
 import
   random,
-  console,
-  dungeon,
+  nimboxconsole,
+  entities/dungeon,
   mainscene
 
 proc main() =
   randomize()
   let
     dungeon = newDungeon(3)
-    console = newConsole()
+    console = newNimBoxConsole()
   defer: console.cleanup
   var scene = newMainScene(dungeon)
   while scene != nil:
