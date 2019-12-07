@@ -1,6 +1,6 @@
-# nim-rogue
+# nimrogue
 ## 概要
-nimでrogueを実装していきます。
+nimでrogueを実装。
 
 ## TODO
 - [ ] 所持金表示
