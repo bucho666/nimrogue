@@ -20,16 +20,15 @@ method execute(self: Move) =
     newCoord = self.dungeon.hero.coord + self.direction
     map = self.dungeon.mapOnHero
     hero = self.dungeon.hero
-  if map.canWalkAt(newCoord):
-    hero.coord = newCoord
-    let item = map.itemAt(newCoord)
-    if item.isNil:
-      self.screen.add_message("move.")
-    else:
-      hero.getItem(item)
-      self.screen.add_message(fmt"get {item.name} ({item.number})")
-  else:
+  if map.canWalkAt(newCoord) == false:
     self.screen.add_message("can't move.")
+    return
+  hero.coord = newCoord
+  let item = map.takeItemAt(newCoord)
+  if item.isNil:
+    return
+  hero.getItem(item)
+  self.screen.add_message(fmt"get {item.name} ({item.number})")
 
 # Down Floor
 type DownFloor = ref object of Command

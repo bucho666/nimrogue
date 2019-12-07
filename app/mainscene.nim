@@ -27,6 +27,7 @@ proc newMainScene*(dungeon: Dungeon): Scene =
       '>': newDownFloor(dungeon, screen)
     }.toTable)
 
+{.warning[LockLevel]: off.}
 method render(self: MainScene, console: Console) =
   for coord, tile in self.dungeon.mapOnHero.tiles:
     self.screen.update_map(coord, tile)

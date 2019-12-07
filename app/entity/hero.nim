@@ -21,3 +21,7 @@ proc getItem*(self: Hero, item: Item) =
     self.inventory[kind][name].number += item.number
   else:
     self.inventory[kind][name] = item
+
+proc gold*(self: Hero): int =
+  if "gold" in self.inventory[ItemKind.Gold]:
+    return self.inventory[ItemKind.Gold]["gold"].number

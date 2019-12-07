@@ -23,7 +23,7 @@ proc buildLevel(level: int): Map =
   map.setRooms(toSeq(g.rooms))
   map.putTerrain(map.floorCoordAtRandom, Downstairs)
   let gold = rand(0 .. 50 + 10 * level) + 2
-  map.putItem(newGold(gold, map.floorCoordAtRandom))
+  map.putItem(map.floorCoordAtRandom, newGold(gold))
   map
 
 proc newDungeon*(lastFloor: int): Dungeon =

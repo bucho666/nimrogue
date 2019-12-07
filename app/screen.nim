@@ -40,6 +40,6 @@ proc render*(self: Screen, console: Console) =
     console.print(coord, tile)
   for i, message in self.messages:
     console.print((0, 24 + i), message)
-  console.print((0, 23), fmt"level: {self.hero.floor}")
+  console.print((0, 23), fmt"level: {self.hero.floor}  gold: {self.hero.gold}")
   console.flush
   self.map_tile.clear
