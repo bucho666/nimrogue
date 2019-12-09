@@ -9,6 +9,9 @@ proc `+=`*(self: var Coord, other: Coord) =
 proc `-`*(self: Coord, other: Coord): Coord =
   (self.x - other.x, self.y - other.y)
 
+proc `-=`*(self: var Coord, other: Coord) =
+  self = self - other
+
 proc abs*(self: Coord): Coord =
   (self.x.abs, self.y.abs)
 

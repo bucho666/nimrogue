@@ -13,8 +13,6 @@ type Move = ref object of Command
 proc newMove*(direction: Direction, dungeon: Dungeon, screen: Screen): Command =
   Move(direction: direction, dungeon: dungeon, screen: screen)
 
-{.warning[LockLevel]: off.}
-
 method execute(self: Move) =
   let
     newCoord = self.dungeon.hero.coord + self.direction
