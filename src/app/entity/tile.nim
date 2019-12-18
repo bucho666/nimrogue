@@ -6,4 +6,5 @@ type Tile* {.pure.} = enum
   Passage,
   Door,
   DownStairs,
-  Gold
+  Gold,
+  Bat

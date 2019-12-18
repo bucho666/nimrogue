@@ -21,7 +21,8 @@ const tileTable = {
   Tile.Passage: (".", clrDefault),
   Tile.Door: ("+", clrYellow),
   Tile.DownStairs: (">", clrWhite),
-  Tile.Gold: ("$", clrYellow)
+  Tile.Gold: ("$", clrYellow),
+  Tile.Bat: ("b", clrYellow)
 }.toTable
 
 type NimBoxConsole* = ref object of Console

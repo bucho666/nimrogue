@@ -1,4 +1,4 @@
-import tables, coord, size, matrix, room, random, terrain, item, tile
+import tables, coord, size, matrix, room, random, terrain, item, tile, monster
 export terrain
 
 const MAP_SIZE*: Size = (80, 24)
@@ -7,6 +7,7 @@ type Map* = ref object
   coord: Coord
   rooms: seq[Room]
   items: Table[Coord, Item]
+  monsters: Table[Coord, Monster]
 
 proc newMap*(): Map =
   result = Map()
@@ -23,6 +24,9 @@ proc putTerrain*(self: var Map, coord: Coord, terrain: Terrain) =
 proc putItem*(self: var Map, coord: Coord, item: Item) =
   self.items[coord] = item
 
+proc putMonster*(self: var Map, coord: Coord, monster: Monster) =
+  self.monsters[coord] = monster
+
 proc takeItemAt*(self: Map, coord: Coord): Item =
   if coord in self.items == false:
     return nil
@@ -33,7 +37,9 @@ iterator tiles*(self: Map): (Coord, Tile) =
   for y in 0 ..< self.terrain.len:
     for x in 0 ..< self.terrain[y].len:
       let coord = (x, y)
-      if coord in self.items:
+      if coord in self.monsters:
+        yield (coord, self.monsters[coord].tile)
+      elif coord in self.items:
         yield (coord, self.items[coord].tile)
       else:
         yield (coord, self.terrain[y][x].tile)

@@ -1,4 +1,4 @@
-import sequtils, random, hero, item, generator, map
+import sequtils, random, hero, item, generator, map, monster, tile
 
 type Dungeon* = ref object
   maps: seq[Map]
@@ -24,6 +24,7 @@ proc buildLevel(level: int): Map =
   map.putTerrain(map.floorCoordAtRandom, Downstairs)
   let gold = rand(0 .. 50 + 10 * level) + 2
   map.putItem(map.floorCoordAtRandom, newGold(gold))
+  map.putMonster(map.floorCoordAtRandom, newMonster(Tile.Bat))
   map
 
 proc newDungeon*(lastFloor: int): Dungeon =
