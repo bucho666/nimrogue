@@ -1,4 +1,4 @@
-import random, nimboxconsole, app/entity/dungeon, app/mainscene
+import random, nimboxconsole, entity/dungeon, app/mainscene
 
 proc main() =
   randomize()

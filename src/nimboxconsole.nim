@@ -1,4 +1,4 @@
-import tables, nimbox, app/console, app/entity/[coord, tile]
+import tables, nimbox, app/console, entity/[coord, tile]
 export nimbox.Color
 
 const colorTable = {

@@ -1,6 +1,6 @@
 import
   tables,
-  "entity"/[direction, hero, map, dungeon],
+  ../entity/[direction, hero, map, dungeon],
   scene, console, screen, command, endingscene
 
 export scene

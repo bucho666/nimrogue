@@ -1,4 +1,4 @@
-import strformat, entity/[coord, direction, hero, item, map, dungeon], screen
+import strformat, ../entity/[coord, direction, hero, map, dungeon, item], screen
 
 type Command* = ref object of RootObj
 

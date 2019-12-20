@@ -1,4 +1,4 @@
-import entity/[coord, tile]
+import ../entity/[coord, tile]
 
 type
   Console* = ref object of RootObj
